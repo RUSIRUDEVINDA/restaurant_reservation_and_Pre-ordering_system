@@ -1,5 +1,6 @@
 //username->admin  password->1234
 
+require('dotenv').config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require('cors');
@@ -12,12 +13,15 @@ const app = express();
 
 //Middleware 
 app.use(express.json());
-app.use(cors({
-  origin: ['http://localhost:8081', 'http://localhost:8083', 'http://localhost:8082'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Access-Control-Allow-Origin', 'Access-Control-Allow-Methods', 'Access-Control-Allow-Headers'],
-  credentials: true
-}));
+const FRONTEND_URL =
+  process.env.FRONTEND_URL || "http://localhost:5173";
+
+app.use(
+  cors({
+    origin: FRONTEND_URL,
+    credentials: true,
+  }) 
+);
 
 // Handle preflight requests for all restaurant routes
 app.options('/restaurant/*', (req, res) => {
@@ -37,9 +41,18 @@ app.get('/api/reservation-requests', reservationRequestController.getReservation
 app.get('/api/restaurant/:restaurantId/reservation-requests', reservationRequestController.getReservationRequestsByRestaurant);
 app.patch('/api/reservation-requests/:id', reservationRequestController.updateReservationRequestStatus);
 
-mongoose.connect("mongodb+srv://admin:**********@airportmanagementsystem.8nzgv.mongodb.net/test")
-.then(()=> console.log("Connected to MongoDB"))
-.then(()=>{
-    app.listen(5000);
-})
-.catch((err)=>console.log((err)));
+
+const PORT = process.env.PORT || 5000;
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("MongoDB connected successfully");
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("MongoDB connection failed:", error.message);
+    process.exit(1);
+  });
