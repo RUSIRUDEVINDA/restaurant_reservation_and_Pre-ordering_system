@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Lock, Mail, User, Phone, LogIn } from "lucide-react";
+import { Lock, Mail, User, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +13,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
+const normalizePhoneNumber = (value: string) => {
+  const trimmedValue = value.trim();
+  const prefix = trimmedValue.startsWith("+") ? "+" : "";
+  return `${prefix}${trimmedValue.replace(/\D/g, "")}`;
+};
+
 const signupSchema = z.object({
   name: z.string()
+    .trim()
     .min(2, "Name must be at least 2 characters long")
     .max(50, "Name cannot exceed 50 characters")
     .regex(/^[a-zA-Z\s]+$/, "Name can only contain letters and spaces")
@@ -25,10 +32,13 @@ const signupSchema = z.object({
     .max(255, "Email cannot exceed 255 characters")
     .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please enter a valid email address"),
   phone: z.string()
-    .min(7, "Phone number must be at least 7 digits")
-    .max(15, "Phone number cannot exceed 15 digits")
-    .regex(/^\+?\d+$/, "Phone number can only contain digits and optional '+' prefix")
-    .refine((value) => !value.startsWith('0'), "Phone number cannot start with 0"),
+    .trim()
+    .regex(
+      /^\+?[\d\s()-]+$/,
+      "Phone number can only contain digits, spaces, parentheses, hyphens, and an optional '+' prefix"
+    )
+    .transform(normalizePhoneNumber)
+    .refine((value) => /^\+?\d{7,15}$/.test(value), "Phone number must contain 7 to 15 digits"),
   password: z.string()
     .min(8, "Password must be at least 8 characters long")
     .max(100, "Password cannot exceed 100 characters")
@@ -51,13 +61,19 @@ const Signup = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { signup } = useAuth();
   
-  const onSubmit = (data: SignupFormType) => {
+  const onSubmit = async (data: SignupFormType) => {
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    const success = await signup({
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+    });
+
+    if (success) {
       setIsLoading(false);
       toast.success("Account created successfully! You can now log in.", {
         style: {
@@ -65,10 +81,12 @@ const Signup = () => {
           color: "white",
           border: "none",
         },
-        icon: "✅",
       });
       navigate("/login");
-    }, 1500);
+      return;
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -145,7 +163,7 @@ const Signup = () => {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="********"
                     {...register("password")}
                     className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-aerox-blue focus:border-aerox-blue transition-all duration-200 ${errors.password ? 'border-red-500' : ''}`}
                   />
@@ -162,7 +180,7 @@ const Signup = () => {
                   <Input
                     id="confirmPassword"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="********"
                     {...register("confirmPassword")}
                     className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-aerox-blue focus:border-aerox-blue transition-all duration-200 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                   />
