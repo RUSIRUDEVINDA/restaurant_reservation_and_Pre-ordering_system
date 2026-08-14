@@ -48,8 +48,10 @@ jobs:
         working-directory: backend
         run: npm ci
 
-      - name: Validate Docker Compose configuration
-        run: docker compose config
+      - name: Build backend Docker image
+        run: docker build -t restaurant-backend:ci ./backend
 
-      - name: Build Docker images
-        run: docker compose build
+      - name: Build frontend Docker image
+        run: docker build -t restaurant-frontend:ci ./frontend
+        
+
