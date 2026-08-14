@@ -105,7 +105,7 @@ const TableReservation: React.FC<TableReservationProps> = ({ restaurant, tables 
         restaurantName: restaurant.name, // Include restaurant name in the payload
       };
       const response = await axios.post(
-        `http://localhost:5000/api/restaurant/${restaurant.id}/reservations`,
+        `/api/restaurant/${restaurant.id}/reservations`,
         reservationPayload
       );
       toast.success("Reservation confirmed! Your confirmation is ready.");
@@ -115,9 +115,12 @@ const TableReservation: React.FC<TableReservationProps> = ({ restaurant, tables 
           restaurant: restaurant,
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = axios.isAxiosError<{ message?: string }>(error)
+        ? error.response?.data?.message
+        : undefined;
       toast.error(
-        error?.response?.data?.message || "Failed to submit reservation. Please try again."
+        message || "Failed to submit reservation. Please try again."
       );
     }
   };

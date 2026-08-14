@@ -106,7 +106,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({ orderId, orderDat
         throw new Error('Please select a valid time slot');
       }
 
-      const response = await axios.patch(`http://localhost:5000/restaurant/orders/${orderId}`, {
+      const response = await axios.patch(`/restaurant/orders/${orderId}`, {
         restaurantName: formData.restaurantName,
         itemsPurchased: formData.itemsPurchased,
         totalAmount: formData.itemsPurchased.reduce((sum, item) => sum + (item.quantity * item.price), 0),
@@ -127,9 +127,9 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({ orderId, orderDat
           onOrderUpdated?.();
         }, 1500);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating order:', error);
-      toast.error(error.message || "Failed to update order. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to update order. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -139,7 +139,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({ orderId, orderDat
     setConfirmUpdate(true);
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: keyof EditableOrderFormProps["orderData"], value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

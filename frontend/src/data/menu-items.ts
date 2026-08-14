@@ -1,9 +1,11 @@
 
 import { MenuItem } from "../types";
 
+type MenuItemTemplate = Omit<MenuItem, "id" | "restaurantId" | "description">;
+
 // Helper function to generate menu items
 const generateMenuItems = (restaurantId: string, category: string): MenuItem[] => {
-  const categories: Record<string, any[]> = {
+  const categories: Record<string, MenuItemTemplate[]> = {
     "Café": [
       { name: "Cappuccino", price: 4.95, category: "Coffee", isSpecial: false, isSeasonal: false, image: "/images/classic_cappuchino.jpg" },
       { name: "Espresso", price: 3.50, category: "Coffee", isSpecial: false, isSeasonal: false, image: "/images/classic_espresso.jpeg" },

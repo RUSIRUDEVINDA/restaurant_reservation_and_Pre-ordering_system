@@ -21,7 +21,7 @@ import axios from 'axios';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import type { RestaurantOrder } from "./types";
-import { Order, Reservation, ReservationRequest, Restaurant } from "@/types";
+import { Order, OrderRequest, Reservation, ReservationRequest, Restaurant } from "@/types";
 import toast from 'react-hot-toast';
 import { 
   LineChart, 
@@ -47,7 +47,7 @@ const AdminRestaurant = () => {
   const [restaurantOrders, setRestaurantOrders] = useState<RestaurantOrder[]>([]);
   const [restaurantReservations, setRestaurantReservations] = useState<Reservation[]>([]);
   const [restaurantRequests, setRestaurantRequests] = useState<ReservationRequest[]>([]);
-  const [orderRequests, setOrderRequests] = useState([]);
+  const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
   
   // Stats
   const [stats, setStats] = useState({
@@ -94,7 +94,7 @@ const AdminRestaurant = () => {
   };
 
   // Custom tooltip for meal chart
-  const MealTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
+  const MealTooltip = ({ active, payload }: { active?: boolean; payload?: { payload: { name: string; value: number } }[] }) => {
     if (active && payload && payload.length) {
       const { name, value } = payload[0].payload;
       return (
@@ -108,7 +108,7 @@ const AdminRestaurant = () => {
   };
 
   // Custom tooltip for pie chart
-  const PieTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
+  const PieTooltip = ({ active, payload }: { active?: boolean; payload?: { payload: { name: string; value: number } }[] }) => {
     if (active && payload && payload.length) {
       const { name, value } = payload[0].payload;
       return (
@@ -146,7 +146,7 @@ const AdminRestaurant = () => {
 
       // Fetch restaurant orders from backend (use restaurant name, not ID)
       if (restaurantData && restaurantData.name) {
-        axios.get(`http://localhost:5000/restaurant/orders/restaurant/${encodeURIComponent(restaurantData.name)}`)
+        axios.get(`/restaurant/orders/restaurant/${encodeURIComponent(restaurantData.name)}`)
           .then(res => setRestaurantOrders(Array.isArray(res.data) ? res.data : []))
           .catch(() => setRestaurantOrders([]));
       } else {
@@ -154,7 +154,7 @@ const AdminRestaurant = () => {
       }
 
       // Fetch reservations and requests from backend
-      axios.get(`http://localhost:5000/api/restaurant/${restaurantId}/reservations`)
+      axios.get(`/api/restaurant/${restaurantId}/reservations`)
         .then(res => {
           console.log('Reservations fetched successfully:', res.data);
           setRestaurantReservations(Array.isArray(res.data) ? res.data : []);
@@ -166,7 +166,7 @@ const AdminRestaurant = () => {
 
       // Fetch reservation requests with error handling
       console.log('Fetching reservation requests for restaurant:', restaurantId);
-      axios.get(`http://localhost:5000/api/restaurant/${restaurantId}/reservation-requests`)
+      axios.get(`/api/restaurant/${restaurantId}/reservation-requests`)
         .then(res => {
           console.log('Reservation requests fetched successfully:', res.data);
           setRestaurantRequests(Array.isArray(res.data) ? res.data : []);
@@ -218,7 +218,7 @@ const AdminRestaurant = () => {
   useEffect(() => {
     if (restaurantId) {
       console.log(`Fetching reservation requests for restaurant ID: ${restaurantId}`);
-      axios.get(`http://localhost:5000/api/restaurant/${restaurantId}/reservation-requests`)
+      axios.get(`/api/restaurant/${restaurantId}/reservation-requests`)
         .then(res => {
           console.log('Reservation requests fetched:', res.data);
           if (Array.isArray(res.data)) {
@@ -239,7 +239,7 @@ const AdminRestaurant = () => {
   // Load order requests for this restaurant
   useEffect(() => {
     if (restaurant && restaurant.name) {
-      axios.get(`http://localhost:5000/restaurant/order-requests/restaurant/${encodeURIComponent(restaurant.name)}`)
+      axios.get(`/restaurant/order-requests/restaurant/${encodeURIComponent(restaurant.name)}`)
         .then(res => setOrderRequests(Array.isArray(res.data) ? res.data : []))
         .catch(() => setOrderRequests([]));
     }
@@ -248,7 +248,7 @@ const AdminRestaurant = () => {
   // Handle order status change
   const handleOrderStatusChange = (orderId: string, newStatus: "confirmed" | "processing" | "ready for pickup" | "picked up") => {
     // Call the API to update the order status
-    axios.patch(`http://localhost:5000/restaurant/orders/status/${orderId}`, { status: newStatus })
+    axios.patch(`/restaurant/orders/status/${orderId}`, { status: newStatus })
       .then(response => {
         console.log(`Order ${orderId} status updated to ${newStatus}`);
         
@@ -279,12 +279,12 @@ const AdminRestaurant = () => {
     try {
       console.log(`Updating request ${requestId} to ${action}`);
       // Update request status in backend
-      await axios.patch(`http://localhost:5000/api/reservation-requests/${requestId}`, { status: action });
+      await axios.patch(`/api/reservation-requests/${requestId}`, { status: action });
       // Refetch reservation requests and reservations
       if (restaurantId) {
         const [requestsRes, reservationsRes] = await Promise.all([
-          axios.get(`http://localhost:5000/api/restaurant/${restaurantId}/reservation-requests`),
-          axios.get(`http://localhost:5000/api/restaurant/${restaurantId}/reservations`)
+          axios.get(`/api/restaurant/${restaurantId}/reservation-requests`),
+          axios.get(`/api/restaurant/${restaurantId}/reservations`)
         ]);
         setRestaurantRequests(Array.isArray(requestsRes.data) ? requestsRes.data : []);
         setRestaurantReservations(Array.isArray(reservationsRes.data) ? reservationsRes.data : []);
@@ -300,18 +300,18 @@ const AdminRestaurant = () => {
   const handleOrderRequestAction = async (requestId: string, orderId: string, action: "approved" | "rejected", type: string) => {
     try {
       // Update request status in backend
-      await axios.patch(`http://localhost:5000/restaurant/order-requests/${requestId}`, { status: action });
+      await axios.patch(`/restaurant/order-requests/${requestId}`, { status: action });
 
       // If approved and type is 'cancellation', delete the order
       if (action === 'approved' && type === 'cancellation') {
-        await axios.delete(`http://localhost:5000/restaurant/orders/${orderId}`);
+        await axios.delete(`/restaurant/orders/${orderId}`);
       }
 
       // Refetch order requests and orders
       if (restaurant && restaurant.name) {
         const [orderRequestsRes, ordersRes] = await Promise.all([
-          axios.get(`http://localhost:5000/restaurant/order-requests/restaurant/${encodeURIComponent(restaurant.name)}`),
-          axios.get(`http://localhost:5000/restaurant/orders/restaurant/${encodeURIComponent(restaurant.name)}`)
+          axios.get(`/restaurant/order-requests/restaurant/${encodeURIComponent(restaurant.name)}`),
+          axios.get(`/restaurant/orders/restaurant/${encodeURIComponent(restaurant.name)}`)
         ]);
         setOrderRequests(Array.isArray(orderRequestsRes.data) ? orderRequestsRes.data : []);
         setRestaurantOrders(Array.isArray(ordersRes.data) ? ordersRes.data : []);

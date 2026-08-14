@@ -32,6 +32,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod"; 
 import axios from 'axios';  
+import { Restaurant } from "@/types";
 
 interface OrderResponse {
   _id: string;
@@ -89,7 +90,7 @@ const Cart = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const [restaurant, setRestaurant] = useState<any>(null);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [pickupTime, setPickupTime] = useState<string>("");
@@ -142,7 +143,7 @@ const Cart = () => {
     const [openHour, openMinute] = restaurant.hours.open.split(':').map(Number);
     const [closeHour, closeMinute] = restaurant.hours.close.split(':').map(Number);
 
-    let currentTime = new Date();
+    const currentTime = new Date();
     
     if (currentTime.getHours() < openHour || 
         (currentTime.getHours() === openHour && currentTime.getMinutes() < openMinute)) {
@@ -191,7 +192,7 @@ const Cart = () => {
         price: item.menuItem.price
       }));
 
-      const response = await axios.post<OrderResponse>('http://localhost:5000/restaurant/orders', {
+      const response = await axios.post<OrderResponse>('/restaurant/orders', {
         restaurantName: restaurant.name,
         itemsPurchased: orderItems,
         totalAmount: parseFloat(totalPrice.toFixed(2)),

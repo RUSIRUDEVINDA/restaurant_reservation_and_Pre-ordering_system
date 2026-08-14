@@ -23,7 +23,7 @@ export function formatPickupTime(pickupTime: string): string {
   // If it's in HH:MM AM/PM format
   const timeMatch = pickupTime.match(/(\d{1,2}):(\d{2}) ?([APap][Mm])/);
   if (timeMatch) {
-    let [_, hours, minutes, period] = timeMatch;
+    const [_, hours, minutes, period] = timeMatch;
     let hoursNum = parseInt(hours, 10);
     if (period.toUpperCase() === 'PM' && hoursNum !== 12) hoursNum += 12;
     if (period.toUpperCase() === 'AM' && hoursNum === 12) hoursNum = 0;

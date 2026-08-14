@@ -41,7 +41,7 @@ const OrderSummary: React.FC = () => {
 
     const fetchOrderDetails = async () => {
       try {
-        const response = await axios.get<OrderData>(`http://localhost:5000/restaurant/orders/${orderId}`);
+        const response = await axios.get<OrderData>(`/restaurant/orders/${orderId}`);
         setOrderData(response.data);
       } catch (err) {
         setError('Failed to fetch order details');

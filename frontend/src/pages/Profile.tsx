@@ -21,13 +21,28 @@ import { getOrdersByUser } from "@/data/orders-reservations";
 import toast from "react-hot-toast";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Order, Reservation, ReservationRequest, Restaurant } from "@/types";
+import { Order, OrderRequest, Reservation, ReservationRequest, Restaurant } from "@/types";
 import { restaurants as restaurantsData } from "@/data/restaurants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ReservationRequestForm from "@/components/ReservationRequestForm";
 import ModifyReservationForm from "@/components/ModifyReservationForm";
 import UserOrders from '@/components/UserOrders';
+
+type RestaurantLookup = Pick<Restaurant, "id" | "name">;
+
+type ReservationRequestSubmission = {
+  requestDetails: string;
+  reservationId?: string;
+  type: "modification" | "cancellation";
+};
+
+type ReservationModificationSubmission = {
+  reservationId?: string;
+  newDate?: string;
+  newTime?: string;
+  newPartySize?: number;
+};
 
 // Utility to format Sri Lankan phone numbers to E.164
 function formatPhoneNumber(phoneNumber: string): string {
@@ -52,8 +67,8 @@ const Profile = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [reservationRequests, setReservationRequests] = useState<ReservationRequest[]>([]);
-  const [orderRequests, setOrderRequests] = useState<any[]>([]);
-  const [restaurants, setRestaurants] = useState<Record<string, Restaurant>>({});
+  const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
+  const [restaurants, setRestaurants] = useState<Record<string, RestaurantLookup>>({});
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
@@ -87,7 +102,7 @@ const Profile = () => {
       console.log('Fetching reservations for user email:', user.email);
       
       // First fetch reservations
-      axios.get(`http://localhost:5000/api/reservations?userEmail=${user.email}`)
+      axios.get(`/api/reservations?userEmail=${user.email}`)
         .then(res => {
           console.log('Reservations fetched:', res.data);
           setReservations(Array.isArray(res.data) ? res.data : []);
@@ -95,7 +110,7 @@ const Profile = () => {
           // Skip fetching restaurants since the endpoint doesn't exist
           // Instead, use the restaurant names from the reservations
           const reservationData = Array.isArray(res.data) ? res.data : [];
-          const restaurantMap: Record<string, any> = {};
+          const restaurantMap: Record<string, RestaurantLookup> = {};
           
           // Create a map of restaurant IDs to names from the reservation data
           reservationData.forEach(reservation => {
@@ -111,7 +126,7 @@ const Profile = () => {
           
           // Now fetch reservation requests with the correct endpoint
           console.log('Fetching reservation requests for user email:', user.email);
-          return axios.get(`http://localhost:5000/api/reservation-requests?userEmail=${user.email}`);
+          return axios.get(`/api/reservation-requests?userEmail=${user.email}`);
         })
         .then(res => {
           console.log('Reservation requests fetched:', res.data);
@@ -124,7 +139,7 @@ const Profile = () => {
           setReservationRequests(requestData);
           
           // Finally fetch order requests
-          return axios.get(`http://localhost:5000/restaurant/order-requests/user/${encodeURIComponent(user.email)}`);
+          return axios.get(`/restaurant/order-requests/user/${encodeURIComponent(user.email)}`);
         })
         .then(res => {
           console.log('Order requests fetched:', res.data);
@@ -145,7 +160,7 @@ const Profile = () => {
   useEffect(() => {
     if (user && reservationRequests.length > 0) {
       console.log('Refreshing reservations after request status change');
-      axios.get(`http://localhost:5000/api/reservations?userEmail=${user.email}`)
+      axios.get(`/api/reservations?userEmail=${user.email}`)
         .then(res => {
           console.log('Reservations refreshed:', res.data);
           const reservationData = Array.isArray(res.data) ? res.data : [];
@@ -209,7 +224,11 @@ const Profile = () => {
   };
   
   // Submit a reservation request to the backend
-  const submitReservationRequest = async (reservationId: string, type: string, data: any) => {
+  const submitReservationRequest = async (
+    reservationId: string,
+    type: ReservationRequest["type"],
+    data: ReservationRequestSubmission
+  ) => {
     try {
       setIsLoading(true);
       const requestData = {
@@ -222,16 +241,16 @@ const Profile = () => {
       console.log('Submitting reservation request:', requestData);
       
       // Send the request to the backend
-      await axios.post(`http://localhost:5000/api/restaurant/${reservationId}/reservation-requests`, requestData);
+      await axios.post(`/api/restaurant/${reservationId}/reservation-requests`, requestData);
       
       toast.success(`${type === 'modification' ? 'Modification' : 'Cancellation'} request submitted successfully`);
       
       // Refresh the reservation requests and order requests
       if (user) {
-        const reservationResponse = await axios.get(`http://localhost:5000/api/reservation-requests?userEmail=${user.email}`);
+        const reservationResponse = await axios.get(`/api/reservation-requests?userEmail=${user.email}`);
         setReservationRequests(Array.isArray(reservationResponse.data) ? reservationResponse.data : []);
         
-        const orderResponse = await axios.get(`http://localhost:5000/restaurant/order-requests/user/${encodeURIComponent(user.email)}`);
+        const orderResponse = await axios.get(`/restaurant/order-requests/user/${encodeURIComponent(user.email)}`);
         setOrderRequests(Array.isArray(orderResponse.data) ? orderResponse.data : []);
       }
     } catch (error) {
@@ -248,7 +267,7 @@ const Profile = () => {
       console.log('Cancelling reservation:', reservationId);
       
       // Send DELETE request to the backend
-      await axios.delete(`http://localhost:5000/api/reservations/${reservationId}`);
+      await axios.delete(`/api/reservations/${reservationId}`);
       
       // Update the reservation status locally to 'deleted'
       setReservations(prevReservations => 
@@ -261,7 +280,7 @@ const Profile = () => {
       
       // Refresh the reservation requests to update their status
       if (user) {
-        const requestsResponse = await axios.get(`http://localhost:5000/api/reservation-requests?userEmail=${user.email}`);
+        const requestsResponse = await axios.get(`/api/reservation-requests?userEmail=${user.email}`);
         setReservationRequests(Array.isArray(requestsResponse.data) ? requestsResponse.data : []);
       }
       
@@ -295,7 +314,7 @@ const Profile = () => {
   };
   
   // Handle saving the modified reservation
-  const handleSaveModification = async (data: any) => {
+  const handleSaveModification = async (data?: ReservationModificationSubmission) => {
     if (!data || !activeReservation) {
       setModifyDialogOpen(false);
       return;
@@ -308,7 +327,7 @@ const Profile = () => {
       console.log('Saving modifications for reservation:', reservationId, data);
       
       // Apply the modifications
-      const updates: any = {};
+      const updates: Partial<Pick<Reservation, "date" | "time" | "partySize">> = {};
       if (data.newTime) updates.time = data.newTime;
       if (data.newPartySize) updates.partySize = data.newPartySize;
       if (data.newDate) updates.date = data.newDate;
@@ -316,7 +335,7 @@ const Profile = () => {
       console.log('Updates to apply:', updates);
       
       // Save to backend and set status to 'modified'
-      await axios.patch(`http://localhost:5000/api/reservations/${reservationId}/modify`, updates);
+      await axios.patch(`/api/reservations/${reservationId}/modify`, updates);
       
       // Mark as modified in state (and persist) ONLY after actual modification
       setReservations(prev =>
@@ -328,7 +347,7 @@ const Profile = () => {
       );
       // Refresh reservations from backend to get updated status
       if (user) {
-        const reservationsRes = await axios.get(`http://localhost:5000/api/reservations?userEmail=${user.email}`);
+        const reservationsRes = await axios.get(`/api/reservations?userEmail=${user.email}`);
         setReservations(Array.isArray(reservationsRes.data) ? reservationsRes.data : []);
       }
       setModifiedReservations(prev => {
@@ -339,7 +358,7 @@ const Profile = () => {
       
       // Refresh the reservation requests to update their status
       if (user) {
-        const requestsResponse = await axios.get(`http://localhost:5000/api/reservation-requests?userEmail=${user.email}`);
+        const requestsResponse = await axios.get(`/api/reservation-requests?userEmail=${user.email}`);
         setReservationRequests(Array.isArray(requestsResponse.data) ? requestsResponse.data : []);
       }
       
@@ -354,7 +373,7 @@ const Profile = () => {
     }
   };
 
-  const handleRequestComplete = (data?: any) => {
+  const handleRequestComplete = (data?: ReservationRequestSubmission) => {
     if (data && activeReservation) {
       // Submit the request to the backend
       const reservationId = activeReservation.id || activeReservation._id;

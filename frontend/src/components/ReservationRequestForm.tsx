@@ -18,7 +18,11 @@ import { restaurants as restaurantsData } from "@/data/restaurants";
 interface ReservationRequestFormProps {
   reservation: Reservation;
   type: "modification" | "cancellation";
-  onSuccess: (data?: any) => void;
+  onSuccess: (data?: {
+    requestDetails: string;
+    reservationId?: string;
+    type: "modification" | "cancellation";
+  }) => void;
 }
 
 const requestFormSchema = z.object({

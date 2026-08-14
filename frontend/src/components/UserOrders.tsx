@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import axios from 'axios';
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import OrderRequestForm from '@/components/OrderRequestForm';
 import ModifyOrderForm from '@/components/ModifyOrderForm';
 import toast from 'react-hot-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { OrderData } from '@/types';
+import { OrderData, OrderRequest } from '@/types';
 import { formatPickupTime } from '@/utils/date';
 
 // Utility to format Sri Lankan phone numbers to E.164
@@ -68,16 +68,16 @@ const UserOrders: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState<string>('');
-  const [orderRequests, setOrderRequests] = useState([]);
+  const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       if (!user?.email) {
         throw new Error('User not logged in');
       }
 
       const response = await axios.get<OrderData[]>(
-        `http://localhost:5000/restaurant/orders/email/${encodeURIComponent(user.email)}`
+        `/restaurant/orders/email/${encodeURIComponent(user.email)}`
       );
       
       const transformedOrders = response.data.map(order => ({
@@ -89,22 +89,25 @@ const UserOrders: React.FC = () => {
       }));
 
       setOrders(transformedOrders);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch order history');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError<{ message?: string }>(err)
+        ? err.response?.data?.message
+        : undefined;
+      setError(message || 'Failed to fetch order history');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.email]);
 
   useEffect(() => {
     if (user?.email) {
-      axios.get(`http://localhost:5000/restaurant/order-requests/user/${encodeURIComponent(user.email)}`)
+      axios.get(`/restaurant/order-requests/user/${encodeURIComponent(user.email)}`)
         .then(res => setOrderRequests(Array.isArray(res.data) ? res.data : []))
         .catch(() => setOrderRequests([]));
     }
   }, [user?.email, orders]);
 
-  const getOrderRequest = (orderId, type) => {
+  const getOrderRequest = (orderId: string, type: OrderRequest["type"]) => {
     return orderRequests.find(req => req.orderId === orderId && req.type === type);
   };
 
@@ -121,15 +124,18 @@ const UserOrders: React.FC = () => {
   const confirmCancellation = async (orderId: string) => {
     try {
       setLoading(true);
-      await axios.delete(`http://localhost:5000/restaurant/orders/${orderId}`);
+      await axios.delete(`/restaurant/orders/${orderId}`);
       setSuccess(true);
       setSuccessMessage('Order cancelled successfully');
       toast.success('Order cancelled successfully');
       // Refresh orders list
       fetchOrders();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error cancelling order:', error);
-      toast.error(error.response?.data?.message || 'Failed to cancel order');
+      const message = axios.isAxiosError<{ message?: string }>(error)
+        ? error.response?.data?.message
+        : undefined;
+      toast.error(message || 'Failed to cancel order');
     } finally {
       setLoading(false);
       setConfirmCancel(false);
@@ -154,7 +160,7 @@ const UserOrders: React.FC = () => {
     }, 30000);
     
     return () => clearInterval(intervalId);
-  }, [user?.email]);
+  }, [fetchOrders]);
 
   if (loading) {
     return (
