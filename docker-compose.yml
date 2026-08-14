@@ -5,8 +5,6 @@ services:
     container_name: restaurant-backend
     env_file:
       - ./backend/.env
-    ports:
-      - "5000:5000"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/health"]
