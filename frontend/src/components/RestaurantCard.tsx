@@ -10,13 +10,15 @@ interface RestaurantCardProps {
   className?: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+
 const RestaurantCard: React.FC<RestaurantCardProps> = ({ restaurant, className = "" }) => {
   const navigate = useNavigate();
 
   const handleCardClick = async (e: React.MouseEvent) => {
     try {
       await axios.post(
-        `${import.meta.env.VITE_API_URL}/restaurant/view`,
+        `${API_URL}/restaurant/view`,
         { restaurantId: restaurant.id, restaurantName: restaurant.name },
         { withCredentials: true }
       );

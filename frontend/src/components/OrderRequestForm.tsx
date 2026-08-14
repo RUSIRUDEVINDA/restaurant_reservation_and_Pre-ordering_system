@@ -47,7 +47,7 @@ const OrderRequestForm: React.FC<OrderRequestFormProps> = ({ orderId, type, onSu
     setConfirmOpen(false);
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/restaurant/order-requests', {
+      await axios.post('/restaurant/order-requests', {
         orderId,
         type,
         requestDetails: reason === "Other" ? otherReason : reason,

@@ -1,6 +1,6 @@
 // Restaurant Types
 export interface Restaurant {
-  logo: any;
+  logo?: string;
   id: string;
   name: string;
   category: string;
@@ -92,6 +92,16 @@ export interface Order {
 }
 
 // Reservation Types
+export type ReservationStatus =
+  | 'approved'
+  | 'booked'
+  | 'cancelled'
+  | 'completed'
+  | 'confirmed'
+  | 'deleted'
+  | 'modified'
+  | 'pending';
+
 export interface Seat {
   id: string;
   tableId: string;
@@ -145,6 +155,18 @@ export interface ReservationRequest {
   createdAt: string;
   restaurantName?: string; // Added to support displaying restaurant name in admin panel
   customerName?: string; // Added to support displaying customer name when reservation is deleted
+}
+
+export interface OrderRequest {
+  id?: string;
+  _id?: string;
+  orderId: string;
+  type: 'modification' | 'cancellation';
+  requestDetails?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt?: string;
+  restaurantName?: string;
+  userEmail?: string;
 }
 
 // User Types

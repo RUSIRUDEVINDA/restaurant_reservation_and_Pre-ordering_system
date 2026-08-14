@@ -24,7 +24,12 @@ const getRestaurantName = (reservation: Reservation) => {
 
 interface ModifyReservationFormProps {
   reservation: Reservation;
-  onSuccess: (data?: any) => void;
+  onSuccess: (data?: {
+    reservationId?: string;
+    newDate: string;
+    newTime: string;
+    newPartySize: number;
+  }) => void;
 }
 
 const modifyFormSchema = z.object({

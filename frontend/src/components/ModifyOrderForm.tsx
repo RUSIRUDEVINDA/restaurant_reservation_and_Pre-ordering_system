@@ -74,7 +74,7 @@ const ModifyOrderForm: React.FC<ModifyOrderFormProps> = ({ order, onSuccess, req
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.patch(`http://localhost:5000/restaurant/orders/${order._id}`, {
+      await axios.patch(`/restaurant/orders/${order._id}`, {
         restaurantName: order.restaurantName, // not editable
         itemsPurchased,
         totalAmount,
@@ -87,9 +87,12 @@ const ModifyOrderForm: React.FC<ModifyOrderFormProps> = ({ order, onSuccess, req
       setOpen(false);
       onSuccess();
       toast.success('Order modified successfully');
-    } catch (err: any) {
+    } catch (err: unknown) {
       setLoading(false);
-      toast.error(err.response?.data?.message || 'Failed to modify order');
+      const message = axios.isAxiosError<{ message?: string }>(err)
+        ? err.response?.data?.message
+        : undefined;
+      toast.error(message || 'Failed to modify order');
     }
   };
 
